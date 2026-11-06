@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tripwire: know when the code you trusted changes</title>
+<link rel="icon" href="docs/logo.png" />
+<style>
+  :root{ --bg:#08090d; --card:#11141c; --line:#232837; --ink:#eef1f7; --dim:#a3acc2; --faint:#6b7590;
+    --accent:#f59e0b; --clear:#4ade80; --caution:#fbbf24; --danger:#fb7185; --unv:#94a3b8; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif}
+  a{color:var(--accent)}
+  .wrap{max-width:980px;margin:0 auto;padding:0 18px 70px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px}
+  .brand img{width:30px;height:30px;border-radius:7px}
+  .net{font:12px ui-monospace,monospace;color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:5px 10px}
+  button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:#1a1f2c;color:var(--ink);padding:9px 14px}
+  button.primary{background:var(--accent);color:#1b1203;border-color:transparent;font-weight:700}
+  button.chip{padding:6px 10px;font-size:13px;border-radius:999px}
+  button:disabled{opacity:.5;cursor:default}
+  h1{font-size:30px;line-height:1.2;margin:28px 0 8px;letter-spacing:-.4px}
+  h2{font:13px ui-monospace,monospace;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin:30px 0 8px}
+  .lead{color:var(--dim);max-width:760px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:14px 0}
+  label{display:block;font:12px ui-monospace,monospace;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin:10px 0 5px}
+  input,select{width:100%;background:#0b0e15;border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:10px 11px;font:inherit}
+  .grid{display:grid;grid-template-columns:180px 1fr;gap:10px}
+  @media (max-width:640px){ .grid{grid-template-columns:1fr} h1{font-size:24px} }
+  .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .muted{color:var(--faint);font-size:13px}
+  .status{margin-top:10px;color:var(--dim);font-size:14px;min-height:18px}
+  .three{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media (max-width:760px){ .three{grid-template-columns:1fr} }
+  .step b{display:block;color:var(--ink);margin-bottom:4px}
+  .step{color:var(--dim);font-size:14px;border:1px solid var(--line);border-radius:12px;padding:14px;background:#0d1018}
+  .verdict{display:inline-block;font:700 14px ui-monospace,monospace;padding:6px 12px;border-radius:999px}
+  .v-CLEAR{background:#10261a;color:var(--clear)} .v-CAUTION{background:#2a2110;color:var(--caution)}
+  .v-DANGER{background:#2c1218;color:var(--danger)} .v-UNVERIFIED,.v-UNREVIEWED,.v-INCOMPLETE{background:#1b2030;color:var(--unv)}
+  .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .kv{display:grid;grid-template-columns:150px 1fr;gap:6px 12px;font-size:14px;margin-top:12px}
+  .kv div:nth-child(odd){color:var(--faint);font:12px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.5px;padding-top:2px}
+  .mono{font-family:ui-monospace,monospace;font-size:13px;word-break:break-all}
+  .flags{display:flex;gap:6px;flex-wrap:wrap}
+  .flag{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 9px;color:var(--dim)}
+  .why{border-left:3px solid var(--line);padding-left:10px;color:var(--dim);margin-top:10px}
+  .gate{font:700 13px ui-monospace,monospace;padding:4px 10px;border-radius:8px}
+  .gate.yes{background:#10261a;color:var(--clear)} .gate.no{background:#2c1218;color:var(--danger)}
+  .evidence li{margin:4px 0}
+  .log{margin-top:10px;font-size:13px}
+  .log div{border-top:1px solid var(--line);padding:6px 0;color:var(--dim)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  td,th{text-align:left;padding:8px 6px;border-top:1px solid var(--line)} th{color:var(--faint);font:12px ui-monospace,monospace;text-transform:uppercase}
+  pre{background:#0b0e15;border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto;font-size:13px;color:#cdd3e1}
+  footer{color:var(--faint);font-size:13px;border-top:1px solid var(--line);padding-top:18px;margin-top:34px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><img src="docs/logo.png" alt="" />Tripwire</div>
+    <div class="row"><span class="net">GenLayer Bradbury</span><button id="connect">Connect wallet</button></div>
+  </header>
+  <div id="wstatus" class="muted" style="margin-top:8px"></div>
+
+  <h1>An audit is a photograph. Upgrades happen the next day.</h1>
+  <p class="lead">Most tokens and vaults your agent touches can swap their code. Pin the version you accepted, and
+    GenLayer validators read every upgrade after it and rule on one question: <b>did the new version gain a power over
+    holders?</b> If it did, or if nobody can read it, the gate closes: <code>safe(id, max_age)</code>.</p>
+
+  <div class="three">
+    <div class="step"><b>1. Pin what you accepted</b>Give a chain and a proxy address. The contract records the running implementation and a hash of its whole verified source.</div>
+    <div class="step"><b>2. Every upgrade is read</b>Anybody can run a check. The chain's Upgraded events name every version since the pin, so an upgrade to a trap and back still shows.</div>
+    <div class="step"><b>3. Code decides what was read</b>No upgrade means no model. A version nobody can read closes the gate. Only you, the pinner, can accept a tripped change.</div>
+  </div>
+
+  <h2>Pin a contract</h2>
+  <section>
+    <div class="grid">
+      <div><label>Chain</label>
+        <select id="chain"><option value="ethereum">ethereum</option><option value="base-sepolia">base-sepolia</option></select></div>
+      <div><label>Proxy address</label><input id="proxy" placeholder="0x..." spellcheck="false" /></div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="pin">Pin it</button>
+      <span class="muted">One wallet transaction. The pin is yours, and only you can accept a change on it.</span>
+    </div>
+    <div class="actions" id="proxies"><span class="muted">Real proxies:</span></div>
+  </section>
+
+  <h2>Look at a wire</h2>
+  <section>
+    <div class="grid"><div><label>Wire id</label><input id="wid" placeholder="0" spellcheck="false" /></div></div>
+    <div class="actions">
+      <button id="lookup">Look up</button>
+      <button class="primary" id="check">Run a check</button>
+      <button id="accept">Accept the change</button>
+      <span class="muted">Looking up needs no wallet. Anybody can run a check.</span>
+    </div>
+    <div class="actions" id="examples"><span class="muted">Try:</span></div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <section id="result" style="display:none"></section>
+
+  <h2>Every wire</h2>
+  <section id="board"><div class="muted">Reading from chain...</div></section>
+
+  <h2>For agents and contracts</h2>
+  <section>
+    <p class="muted" style="margin-top:0">True only while the wire is watching and was checked within the age you ask for, never more than 30 days.</p>
+<pre># before adding to a position: checked within the last hour
+ok = gl.contract.get_at(Address(TRIPWIRE)).view().safe(wire_id, "3600")</pre>
+  </section>
+
+  <footer>
+    Contract <a id="exp" target="_blank" rel="noopener">on the Bradbury explorer</a> &middot;
+    <a href="https://github.com/JspIIV/tripwire" target="_blank" rel="noopener">source and proof</a> &middot;
+    upgrades read from Ethereum and Base Sepolia through Blockscout, with no API key. A ruling is the validators'
+    reading of a diff. It is not an audit and not financial advice.
+  </footer>
+</div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/genlayer-js@2.0.0-rc.2";
+import { testnetBradbury } from "https://esm.sh/genlayer-js@2.0.0-rc.2/chains";
+
+const CONTRACT = "0x3894087eB2d0A49219692A0CC395A3c4F6E78F4D";
+const RPC = "https://rpc-bradbury.genlayer.com";
+const EXPLORER = "https://scan.bradbury.genlayer.com";
+const EXAMPLES = [["0", "New power, then accepted"], ["1", "Trap and back"], ["2", "Unverified version"], ["3", "USDC, unchanged"]];
+const PROXIES = [["ethereum", "0xdC035D45d973E3EC169d2276DDab16f1e407384F", "USDS"], ["ethereum", "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8", "PYUSD"], ["ethereum", "0x4Fabb145d64652a948d72533023f6E7A623C7C53", "BUSD"]];
+const CHAIN_ID_HEX = "0x107d";
+const CHAIN_PARAMS = { chainId: CHAIN_ID_HEX, chainName: "GenLayer Bradbury",
+  nativeCurrency: { name: "GEN", symbol: "GEN", decimals: 18 },
+  rpcUrls: ["https://rpc.testnet-chain.genlayer.com"], blockExplorerUrls: [EXPLORER] };
+const ROUND_GAS = 8_000_000n, GAS_CAP = 95_000_000n, WALLET_COMPUTES = ["nonce", "type", "chainId"];
+
+const reader = createClient({ chain: testnetBradbury, endpoint: RPC });
+let account = null, eip1193 = null;
+// The SDK quotes fees with an eth_call that has a gas price and no sender, which the node refuses from
+// the zero address. The connected account is filled in as the sender; the call's result does not change.
+const realFetch = window.fetch.bind(window);
+window.fetch = async (input, init) => {
+  if (account && init && typeof init.body === "string" && init.body.includes('"eth_call"')) {
+    const body = JSON.parse(init.body);
+    for (const req of Array.isArray(body) ? body : [body]) {
+      if (req.method === "eth_call" && req.params?.[0] && !req.params[0].from) req.params[0].from = account;
+    }
+    return realFetch(input, { ...init, body: JSON.stringify(body) });
+  }
+  return realFetch(input, init);
+};
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const short = (a) => (a ? `${String(a).slice(0, 6)}...${String(a).slice(-4)}` : "");
+const when = (ts) => (ts ? new Date(ts * 1000).toISOString().slice(0, 16).replace("T", " ") + " UTC" : "");
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(a);
+$("exp").href = EXPLORER + "/address/" + CONTRACT;
+
+async function read(fn, args = []) {
+  for (let i = 1; i <= 4; i++) {
+    try { const raw = await reader.readContract({ address: CONTRACT, functionName: fn, args });
+      try { return JSON.parse(raw); } catch { return raw; } }
+    catch (e) { if (i === 4) throw e; await sleep(1500 * i); }
+  }
+}
+const CLASS = { WATCHING: "CLEAR", BLIND: "CAUTION", TRIPPED: "DANGER" };
+const MEANING = {
+  WATCHING: "The code running is the code accepted, or every upgrade since was read and gained no power.",
+  TRIPPED: "A new version gained a power over holders. The gate stays closed until the pinner accepts the change.",
+  BLIND: "A new version or the evidence could not be read whole, so the gate is closed until a check can read it.",
+};
+const badge = (s) => `<span class="verdict v-${esc(CLASS[s] || "UNREVIEWED")}">${esc(s)}</span>`;
+
+async function lookup() {
+  const id = $("wid").value.trim();
+  if (!/^[0-9]+$/.test(id)) { $("status").textContent = "Enter a wire id, such as 0."; return; }
+  $("status").textContent = "Reading from chain...";
+  try {
+    const [rec, ok] = await Promise.all([read("get", [id]), read("safe", [id, "2592000"])]);
+    $("status").textContent = "";
+    const box = $("result"); box.style.display = "block";
+    if (!rec || rec.exists === false) { box.innerHTML = '<p class="muted">No wire with that id.</p>'; return; }
+    const log = (rec.log || []).slice().reverse().map((e) => `<div>#${e.n} <b>${esc(e.verdict)}</b> &middot; ${esc(when(e.ts))}
+      ${e.why ? `<span class="muted">${esc(e.why)}</span>` : ""} ${(e.powers || []).map((g) => `<span class="flag">${esc(g)}</span>`).join(" ")}</div>`).join("");
+    const accepted = (rec.accepted || []).map((a) => `<div>accepted ${esc(short(a.impl))} &middot; ${esc(when(a.ts))} ${(a.powers || []).map((g) => `<span class="flag">${esc(g)}</span>`).join(" ")}</div>`).join("");
+    box.innerHTML = `<div class="row">${badge(rec.status)}<span class="gate ${ok ? "yes" : "no"}">safe (30 days): ${ok}</span></div>
+      <p class="muted" style="margin:8px 0 0">${esc(MEANING[rec.status] || "")}</p>
+      ${rec.why ? `<div class="why">${esc(rec.why)}</div>` : ""}
+      ${rec.blind_why ? `<div class="why">${esc(rec.blind_why)}</div>` : ""}
+      ${(rec.powers || []).length ? `<div class="flags" style="margin-top:10px">${rec.powers.map((f) => `<span class="flag">${esc(f)}</span>`).join("")}</div>` : ""}
+      <div class="kv">
+        <div>Proxy</div><div class="mono">${esc(rec.proxy)} <span class="muted">on ${esc(rec.chain)}</span></div>
+        <div>Accepted code</div><div class="mono">${esc(rec.impl)}</div>
+        <div>Source hash</div><div class="mono">${esc(rec.sha)}</div>
+        <div>Upgrades read</div><div>${esc(rec.upgrades)}</div>
+        <div>Pinner</div><div class="mono">${esc(rec.by)}</div>
+        <div>Last check</div><div>${esc(when(rec.last_check))}</div>
+      </div>
+      <div class="log">${log}${accepted}</div>`;
+  } catch (e) { $("status").textContent = "Could not read: " + (e?.shortMessage || e?.message || e); }
+}
+
+/* ---- wallet ---- */
+function walletFriendly(p) { return { ...p, request: async (payload) => {
+  if (payload?.method !== "eth_sendTransaction") return p.request(payload);
+  const tx = { ...(payload.params?.[0] ?? {}) }; for (const k of WALLET_COMPUTES) delete tx[k];
+  if (BigInt(tx.gas ?? 0) < ROUND_GAS) tx.gas = "0x" + ROUND_GAS.toString(16);
+  if (BigInt(tx.gas ?? 0) > GAS_CAP) tx.gas = "0x" + GAS_CAP.toString(16);
+  try { return await p.request({ method: "eth_sendTransaction", params: [tx] }); }
+  catch (err) { if (err?.code !== -32602 || tx.gasPrice === undefined) throw err; const t = { ...tx }; delete t.gasPrice;
+    return p.request({ method: "eth_sendTransaction", params: [t] }); } } }; }
+const injected = [];
+try { window.addEventListener("eip6963:announceProvider", (ev) => { if (ev?.detail?.provider) injected.push(ev.detail); });
+  window.dispatchEvent(new Event("eip6963:requestProvider")); } catch {}
+function pickProvider() {
+  const mm = injected.find((d) => /metamask/i.test(d.info?.rdns || "") || /metamask/i.test(d.info?.name || ""));
+  if (mm) return mm.provider;
+  const e = window.ethereum; if (!e) return null;
+  if (Array.isArray(e.providers) && e.providers.length) return e.providers.find((p) => p.isMetaMask) || e.providers[0];
+  return e;
+}
+async function ensureWallet() {
+  eip1193 = pickProvider();
+  if (!eip1193) throw new Error("No wallet found. Reading needs none; to pin or check, open this page in a browser with MetaMask.");
+  if (!account) { const a = await eip1193.request({ method: "eth_requestAccounts" }); account = a && a[0];
+    if (!account) throw new Error("No account was shared."); $("connect").textContent = short(account); }
+  const cur = await eip1193.request({ method: "eth_chainId" });
+  if (String(cur).toLowerCase() !== CHAIN_ID_HEX) {
+    try { await eip1193.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_ID_HEX }] }); }
+    catch (err) { if (err && (err.code === 4902 || err.code === -32603)) await eip1193.request({ method: "wallet_addEthereumChain", params: [CHAIN_PARAMS] }); else throw err; }
+  }
+}
+$("connect").onclick = async () => {
+  $("wstatus").textContent = "Opening your wallet...";
+  try { await ensureWallet(); $("wstatus").textContent = "Connected " + short(account) + " on GenLayer Bradbury."; }
+  catch (e) { $("wstatus").textContent = e?.code === 4001 ? "Connection rejected." : (e?.message || String(e)); }
+};
+
+// Send one write, then report only from this transaction's own final receipt.
+async function write(fn, args, done) {
+  try {
+    await ensureWallet();
+    $("status").textContent = "Approve it in your wallet...";
+    const c = createClient({ chain: testnetBradbury, endpoint: RPC, account, provider: walletFriendly(eip1193) });
+    let hash;
+    try {
+      const quote = await c.estimateTransactionFees({});
+      hash = await c.writeContract({ address: CONTRACT, functionName: fn, args, value: 0n,
+        fees: { distribution: quote.distribution, feeValue: quote.feeValue } });
+    } catch (e) {
+      $("status").textContent = e?.code === 4001 ? "Rejected in the wallet." : "Not sent: " + (e?.details || e?.shortMessage || e?.message || e);
+      return;
+    }
+    const link = (text) => { const a = document.createElement("a"); a.href = EXPLORER + "/tx/" + hash; a.target = "_blank"; a.rel = "noopener"; a.textContent = "transaction"; const box = $("status"); box.textContent = text + " "; box.appendChild(a); };
+    for (let i = 0; i < 300; i++) {
+      await sleep(6000);
+      let tx = null; try { tx = await reader.getTransaction({ hash }); } catch {}
+      const name = String(tx?.statusName || "");
+      if (name === "FINALIZED") {
+        if (tx.txExecutionResultName !== "FINISHED_WITH_RETURN") { link("The round finished with an error and changed nothing."); return; }
+        link(await done());
+        await lookup(); await loadBoard(); return;
+      }
+      if (["UNDETERMINED", "CANCELED", "LEADER_TIMEOUT", "VALIDATORS_TIMEOUT"].includes(name)) { link(`The round ended ${name} and changed nothing.`); return; }
+      link(name === "ACCEPTED" ? "Accepted by the validators. It is not final until the appeal window closes, so nothing is reported yet."
+        : `The validators are reading... ${(i + 1) * 6}s, ${name || "waiting for the network"}.`);
+    }
+    link("Not final yet. The round is still open; follow it on the");
+  } catch (e) { $("status").textContent = "Could not send: " + (e?.shortMessage || e?.message || e); }
+}
+
+$("pin").onclick = () => {
+  const chain = $("chain").value, proxy = $("proxy").value.trim();
+  if (!isAddr(proxy)) { $("status").textContent = "Enter a proxy's 0x address."; return; }
+  write("pin", [chain, proxy], async () => {
+    const f = await read("find", [account, chain, proxy]);
+    if (!f?.exists) return "Final: nothing was pinned. It may not be a proxy with one verified implementation.";
+    $("wid").value = f.id;
+    return `Final: pinned as wire #${f.id}.`;
+  });
+};
+$("check").onclick = () => {
+  const id = $("wid").value.trim();
+  if (!/^[0-9]+$/.test(id)) { $("status").textContent = "Enter a wire id, such as 0."; return; }
+  write("check", [id], async () => `Final: this wire is ${(await read("get", [id]))?.status}.`);
+};
+$("accept").onclick = () => {
+  const id = $("wid").value.trim();
+  if (!/^[0-9]+$/.test(id)) { $("status").textContent = "Enter a wire id, such as 0."; return; }
+  write("accept_change", [id], async () => `Final: this wire is ${(await read("get", [id]))?.status}.`);
+};
+$("lookup").onclick = lookup;
+
+for (const [id, label] of EXAMPLES) {
+  const b = document.createElement("button"); b.className = "chip"; b.textContent = label;
+  b.onclick = () => { $("wid").value = id; lookup(); };
+  $("examples").appendChild(b);
+}
+for (const [chain, proxy, label] of PROXIES) {
+  const b = document.createElement("button"); b.className = "chip"; b.textContent = label;
+  b.onclick = () => { $("chain").value = chain; $("proxy").value = proxy; };
+  $("proxies").appendChild(b);
+}
+
+async function loadBoard() {
+  try {
+    const size = await read("size");
+    const n = Number(size?.total || 0);
+    if (!n) { $("board").innerHTML = '<div class="muted">No wires yet.</div>'; return; }
+    const rows = await Promise.all(Array.from({ length: Math.min(n, 20) }, (_, i) => read("get", [String(n - 1 - i)])));
+    $("board").innerHTML = `<table><thead><tr><th>Wire</th><th>Proxy</th><th>Chain</th><th>Status</th><th>Checks</th></tr></thead><tbody>${
+      rows.map((r) => `<tr><td><a href="#" class="pick" data-i="${esc(r.id)}">#${esc(r.id)}</a></td><td class="mono">${esc(short(r.proxy))}</td><td>${esc(r.chain)}</td><td>${badge(r.status)}</td><td>${esc(r.checks)}</td></tr>`).join("")}</tbody></table>`;
+    document.querySelectorAll(".pick").forEach((a) => a.onclick = (ev) => { ev.preventDefault(); $("wid").value = a.dataset.i; lookup(); window.scrollTo({ top: 0, behavior: "smooth" }); });
+  } catch (e) { $("board").innerHTML = `<div class="muted">Could not read the board: ${esc(e?.message || e)}</div>`; }
+}
+loadBoard();
+</script>
+</body>
+</html>

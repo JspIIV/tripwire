@@ -1,0 +1,37 @@
+{
+  "V1": {
+    "address": "0x4eB4971775B1b33d9FF47d89f6e9B5A787B359e8",
+    "tx": "0x4dc26006db37340b54ea929c3ccbf9486d2c84a846be729dd73fe30df2ae69dd",
+    "verified": true
+  },
+  "V2": {
+    "address": "0xdaEa32d2233A065EcDffE38f7b0054A008508645",
+    "tx": "0x45c3019c4a95e274737f81fa095fd9ee064dd0b1b76d06b86c6f5f11216563be",
+    "verified": true
+  },
+  "V3": {
+    "address": "0xBE0742e5c1E0Cb26fFA378743B1cAFd239570814",
+    "tx": "0x3e52d2c9fa47fffc70d9e7a5d037b9cd8fbd27ee367d5034ff22dd7d17214182",
+    "verified": true
+  },
+  "Hidden": {
+    "address": "0xE870AafB75b4e16B25713C5dcD094444A46D2825",
+    "tx": "0x5795912f140e0d1aaa72b9d26d40f0d30692f00bb43301353b54e08aa8020c9f",
+    "verified": false
+  },
+  "ProxyA": {
+    "address": "0xaCFE503Fb24739DA7ba66F12f423D920245cBCe2",
+    "tx": "0x975434e9a458f3331d4624181f5a965ec01ae98f72b0e30b47c0a5c46bb9aaf7",
+    "verified": true
+  },
+  "ProxyB": {
+    "address": "0x7FeAabBafF47bA7d800255274cBFb8Fea24B3a4b",
+    "tx": "0xad0316e7f337df3a5fac1d480ec350e9a95b69376abb336ccf91e4a0feb2cd11",
+    "verified": true
+  },
+  "ProxyC": {
+    "address": "0x4F4A677b8e893faCE24e3EFbE64DE6DF871B86fd",
+    "tx": "0xbf468c1941316008a6639ef35a1021c6d5f4b51a4573935f71832af0530c9fb4",
+    "verified": true
+  }
+}

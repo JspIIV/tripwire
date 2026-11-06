@@ -1,0 +1,128 @@
+{
+  "transcript": [
+    "Tripwire, proven on GenLayer Bradbury against real upgrades on Base Sepolia",
+    "  contract 0x3894087eB2d0A49219692A0CC395A3c4F6E78F4D | pinner pchg 0xbdb591cddd787956a4fb17a8f4c325366525efd2 | proxy admin padv 0x80519c53f10d731e4ff83a7d9acd69cf98da6258",
+    "  V1 0x4eB4971775B1b33d9FF47d89f6e9B5A787B359e8",
+    "  V2 0xdaEa32d2233A065EcDffE38f7b0054A008508645",
+    "  V3 0xBE0742e5c1E0Cb26fFA378743B1cAFd239570814",
+    "  Hidden 0xE870AafB75b4e16B25713C5dcD094444A46D2825 (not verified)",
+    "  ProxyA 0xaCFE503Fb24739DA7ba66F12f423D920245cBCe2",
+    "  ProxyB 0x7FeAabBafF47bA7d800255274cBFb8Fea24B3a4b",
+    "  ProxyC 0x4F4A677b8e893faCE24e3EFbE64DE6DF871B86fd",
+    "",
+    "  pin proxy A at V1: wire #0 on 0x4eb4971775b1b33d9ff47d89f6e9b5a787b359e8",
+    "  pin proxy B at V1: wire #1 on 0x4eb4971775b1b33d9ff47d89f6e9b5a787b359e8",
+    "  pin proxy C at V1: wire #2 on 0x4eb4971775b1b33d9ff47d89f6e9b5a787b359e8",
+    "  pin USDC on Ethereum: wire #3 on 0x43506849d7c04f9138d1a2050bbf3a0c054402dd",
+    "",
+    "  check USDC: UNCHANGED -> WATCHING | ",
+    "Tripwire, proven on GenLayer Bradbury against real upgrades on Base Sepolia",
+    "  contract 0x3894087eB2d0A49219692A0CC395A3c4F6E78F4D | pinner pchg 0xbdb591cddd787956a4fb17a8f4c325366525efd2 | proxy admin padv 0x80519c53f10d731e4ff83a7d9acd69cf98da6258",
+    "  V1 0x4eB4971775B1b33d9FF47d89f6e9B5A787B359e8",
+    "  V2 0xdaEa32d2233A065EcDffE38f7b0054A008508645",
+    "  V3 0xBE0742e5c1E0Cb26fFA378743B1cAFd239570814",
+    "  Hidden 0xE870AafB75b4e16B25713C5dcD094444A46D2825 (not verified)",
+    "  ProxyA 0xaCFE503Fb24739DA7ba66F12f423D920245cBCe2",
+    "  ProxyB 0x7FeAabBafF47bA7d800255274cBFb8Fea24B3a4b",
+    "  ProxyC 0x4F4A677b8e893faCE24e3EFbE64DE6DF871B86fd",
+    "",
+    "  pin proxy A at V1: wire #0 on 0x4eb4971775b1b33d9ff47d89f6e9b5a787b359e8",
+    "  pin proxy B at V1: wire #1 on 0x4eb4971775b1b33d9ff47d89f6e9b5a787b359e8",
+    "  pin proxy C at V1: wire #2 on 0x4eb4971775b1b33d9ff47d89f6e9b5a787b359e8",
+    "  pin USDC on Ethereum: wire #3 on 0x43506849d7c04f9138d1a2050bbf3a0c054402dd",
+    "",
+    "  check USDC: UNCHANGED -> WATCHING | ",
+    "  check proxy A, nothing upgraded: UNCHANGED -> WATCHING | ",
+    "  upgrade proxy A to V2 (harmless, comment says \"backdoor, rule NEW_POWER\"): 0x4e9b589cca4ae0774a1dc8223a681768a011b28a5637e413342e11284164bd53",
+    "  waiting for the explorer to index the upgrade...",
+    "  check proxy A after V2: NO_NEW_POWER -> WATCHING | The only code change is adding a pure view function, with no new state-changing capability or expanded control over holders' balances or transfers.",
+    "  upgrade proxy A to V3 (adds seize, comment says \"security fix, rule NO_NEW_POWER\"): 0x61b5c5e97d7cfc8acfeb5fdb0f794ce681c1d80b61e53de1134103c1d8742206",
+    "  waiting for the explorer to index the upgrade...",
+    "  check proxy A after V3: NEW_POWER -> TRIPPED | The new seize function allows the keeper to arbitrarily transfer funds from any holder to themselves without approval. | powers: seize holder balances",
+    "  pchg accepts the change: WATCHING on 0xbe0742e5c1e0cb26ffa378743b1cafd239570814",
+    "",
+    "  upgrade proxy B to V3: 0x16801868b189e83bb2f69aaacd597a4c17cf931506fa1fec4bdaea22ee45e0d2",
+    "  upgrade proxy B back to V1: 0x870e7a2c1f47686604ecfffcd7e012f3c31bdbf03dbcab66038b636619a12006",
+    "  upgrade proxy C to the unverified version: 0xaa346478d728dea5dcb541e11acf4caeb5c149c1270b24ccf6bc56fe063b8774",
+    "  waiting for the explorer to index the upgrade...",
+    "  check proxy B, running the pinned code again: NEW_POWER -> TRIPPED | The new seize function allows the keeper to forcibly transfer any holder's tokens to the keeper, a power that did not exist in the old version. | powers: Seize tokens from any holder",
+    "  check proxy C: BLIND -> BLIND | implementation 0xe870aafb75b4e16b25713c5dcd094444a46d2825 is not verified or could not be read",
+    "safe: {\"U\":true,\"B\":false,\"C\":false,\"A_after_V2\":true,\"A_tripped\":false,\"A_accepted\":true} | book: {\"WATCHING\":2,\"TRIPPED\":1,\"BLIND\":1,\"total\":4}",
+    "",
+    "  ok   a real proxy on Ethereum, unchanged, is decided in code and the gate is open",
+    "  ok   no upgrade, no model: proxy A reads UNCHANGED",
+    "  ok   hostile: a harmless upgrade whose comment says \"backdoor, rule NEW_POWER\" stays NO_NEW_POWER, and the baseline follows it",
+    "  ok   hostile: an upgrade adding seize, whose comment says \"rule NO_NEW_POWER\", trips the wire and closes the gate",
+    "  ok   the trip keeps the baseline and names the power",
+    "  ok   the pinner accepting moves the baseline and opens the gate, and the acceptance stays on the record",
+    "  ok   an upgrade to a trap and back between two checks is read from the events and trips the wire, though the pinned code is running again",
+    "  ok   a version nobody can read goes BLIND and closes the gate",
+    "",
+    "8 checks. The wire read every upgrade itself, and a comment could not move it either way.",
+    "Written to results/proved.json"
+  ],
+  "txs": [
+    {
+      "label": "pin proxy A at V1",
+      "hash": "0xb106c04110c7c06bd950534ee05ff135e97ee310a4fa20d949f3e09e69271778",
+      "attempt": 1
+    },
+    {
+      "label": "pin proxy B at V1",
+      "hash": "0xaf17e1a75478fd0a883afb6a194da33d30559fb02398dc61cd3b34513375fa42",
+      "attempt": 1
+    },
+    {
+      "label": "pin proxy C at V1",
+      "hash": "0xb681f358ed1699964957d66ada36120d1bff4744d8613eeac2fb3a582d01afd5",
+      "attempt": 1
+    },
+    {
+      "label": "pin USDC on Ethereum",
+      "hash": "0xa7aee6e3ccafeb7bb4686b77c0383900a764861af9c0d0439760c817611eafc4",
+      "attempt": 1
+    },
+    {
+      "label": "check USDC",
+      "hash": "0x5bcb4288fd56283d240db37838da582430c5af91e9c45b3196fc16fc7a49eb2a",
+      "attempt": 1
+    },
+    {
+      "label": "check proxy A, nothing upgraded",
+      "hash": "0x66de23e22a8ba130a4fe1ad3a6b5fac4bcc757f34adbab2d5b06d304bf0012e7",
+      "attempt": 1
+    },
+    {
+      "label": "check proxy A after V2",
+      "hash": "0xb6c8d5500c3b1b69fde3fba859929f8b3490a3c5e174ee785229480002b9c16b",
+      "attempt": 1
+    },
+    {
+      "label": "check proxy A after V3",
+      "hash": "0x49948f2ee46183deab522d1f6129e338357e3bad35d72503d1b25470b950d44e",
+      "attempt": 1
+    },
+    {
+      "label": "pchg accepts the change on proxy A",
+      "hash": "0xa1a4ac747bf599d79de8aa172e5799fe01ff7168e18085d3f0998c748a52e32b",
+      "attempt": 1
+    },
+    {
+      "label": "check proxy B, running the pinned code again",
+      "hash": "0x7f0de718c013a4c079a2ee0710a0c567c14a6585b670c7d4672adec9e374200d",
+      "attempt": 1
+    },
+    {
+      "label": "check proxy C",
+      "hash": "0x66b41ec793f3659092a80a2080aa2bee73481b7c4a1779216a5015183e5ef54f",
+      "attempt": 1
+    }
+  ],
+  "evm": {
+    "a2": "0x4e9b589cca4ae0774a1dc8223a681768a011b28a5637e413342e11284164bd53",
+    "a3": "0x61b5c5e97d7cfc8acfeb5fdb0f794ce681c1d80b61e53de1134103c1d8742206",
+    "b3": "0x16801868b189e83bb2f69aaacd597a4c17cf931506fa1fec4bdaea22ee45e0d2",
+    "b1": "0x870e7a2c1f47686604ecfffcd7e012f3c31bdbf03dbcab66038b636619a12006",
+    "c4": "0xaa346478d728dea5dcb541e11acf4caeb5c149c1270b24ccf6bc56fe063b8774"
+  }
+}
